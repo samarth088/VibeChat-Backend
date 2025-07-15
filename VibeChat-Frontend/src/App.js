@@ -1,15 +1,28 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import Navbar from './components/Navbar';
-import ProtectedRoute from './components/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import HomePage from './pages/HomePage';
 import ChatPage from './pages/ChatPage';
 import ProfilePage from './pages/ProfilePage';
+import Toast from './components/Toast';
+
+const PrivateRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  
+  if (loading) return <Loader />;
+  return user ? children : <Navigate to="/login" />;
+};
 
 function App() {
+  const [toast, setToast] = useState({ show: false, message: '', type: '' });
+
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+  };
+
   return (
     <AuthProvider>
       <BrowserRouter>
@@ -17,15 +30,26 @@ function App() {
           <Navbar />
           <div className="flex-grow container mx-auto p-4">
             <Routes>
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route element={<ProtectedRoute />}>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/chat/:username" element={<ChatPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-              </Route>
+              <Route path="/login" element={<LoginPage showToast={showToast} />} />
+              <Route path="/register" element={<RegisterPage showToast={showToast} />} />
+              <Route path="/" element={
+                <PrivateRoute><HomePage /></PrivateRoute>
+              } />
+              <Route path="/chat/:username" element={
+                <PrivateRoute><ChatPage /></PrivateRoute>
+              } />
+              <Route path="/profile" element={
+                <PrivateRoute><ProfilePage showToast={showToast} /></PrivateRoute>
+              } />
             </Routes>
           </div>
+          {toast.show && (
+            <Toast 
+              message={toast.message} 
+              type={toast.type} 
+              onClose={() => setToast({ show: false, message: '', type: '' })} 
+            />
+          )}
         </div>
       </BrowserRouter>
     </AuthProvider>
